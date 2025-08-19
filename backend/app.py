@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 import openai
 import json
+from sms_service import SMSService
+from scheduler import ReminderScheduler
 
 load_dotenv()
 
@@ -20,6 +22,9 @@ db = SQLAlchemy(app)
 # Configure OpenAI
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+# Initialize SMS service
+sms_service = SMSService()
+
 # Database Models
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -31,6 +36,10 @@ class Booking(db.Model):
     appointment_time = db.Column(db.String(10), nullable=False)
     special_requests = db.Column(db.Text)
     status = db.Column(db.String(20), default='pending')
+    confirmation_sent = db.Column(db.Boolean, default=False)
+    reminder_24h_sent = db.Column(db.Boolean, default=False)
+    reminder_2h_sent = db.Column(db.Boolean, default=False)
+    followup_sent = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class ChatHistory(db.Model):
@@ -101,6 +110,12 @@ def get_ai_response(user_message, conversation_history):
         6. If you need to book an appointment, ask for all required information step by step
         7. Be conversational and helpful, not robotic
         8. If asked about pricing or duration, refer to the service information above
+        9. IMPORTANT: Mention that clients will receive:
+           - Immediate SMS confirmation when booking
+           - 24-hour reminder text before appointment
+           - 2-hour reminder text on appointment day
+           - Follow-up care message after service
+        10. Emphasize our automated text reminder system to reduce no-shows
 
         Current conversation context: {conversation_history[-5:] if conversation_history else []}
         """
@@ -199,9 +214,35 @@ def book_appointment():
         db.session.add(booking)
         db.session.commit()
 
+        # Send confirmation SMS
+        service_info = LASH_SERVICES.get(data['service_type'], {})
+        booking_data = {
+            'client_name': data['client_name'],
+            'client_phone': data['client_phone'],
+            'appointment_date': appointment_date.strftime('%A, %B %d, %Y'),
+            'appointment_time': data['appointment_time'],
+            'service_name': service_info.get('name', data['service_type']),
+            'price': service_info.get('price', 0),
+            'duration': service_info.get('duration', 0)
+        }
+
+        # Send confirmation SMS
+        sms_result = sms_service.send_booking_confirmation(booking_data)
+        if sms_result['success']:
+            booking.confirmation_sent = True
+            db.session.commit()
+
+        # Schedule reminders
+        try:
+            reminder_scheduler = ReminderScheduler(db, Booking)
+            reminder_scheduler.schedule_booking_reminders(booking)
+        except Exception as e:
+            print(f"Error scheduling reminders: {str(e)}")
+
         return jsonify({
-            'message': 'Appointment booked successfully!',
+            'message': 'Appointment booked successfully! You\'ll receive a confirmation text shortly.',
             'booking_id': booking.id,
+            'sms_sent': sms_result['success'],
             'success': True
         })
 
@@ -272,6 +313,123 @@ def get_bookings():
 
         return jsonify({
             'bookings': booking_list,
+            'success': True
+        })
+
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
+@app.route('/api/cancel-booking/<int:booking_id>', methods=['POST'])
+def cancel_booking(booking_id):
+    """Cancel a booking and send confirmation SMS"""
+    try:
+        booking = Booking.query.get_or_404(booking_id)
+        
+        # Update booking status
+        booking.status = 'cancelled'
+        db.session.commit()
+
+        # Cancel scheduled reminders
+        try:
+            reminder_scheduler = ReminderScheduler(db, Booking)
+            reminder_scheduler.cancel_booking_reminders(booking_id)
+        except Exception as e:
+            print(f"Error cancelling reminders: {str(e)}")
+
+        # Send cancellation confirmation SMS
+        booking_data = {
+            'client_name': booking.client_name,
+            'client_phone': booking.client_phone,
+            'appointment_date': booking.appointment_date.strftime('%A, %B %d, %Y'),
+            'appointment_time': booking.appointment_time
+        }
+        
+        sms_result = sms_service.send_cancellation_confirmation(booking_data)
+
+        return jsonify({
+            'message': 'Booking cancelled successfully',
+            'sms_sent': sms_result['success'],
+            'success': True
+        })
+
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
+@app.route('/api/send-reminder/<int:booking_id>', methods=['POST'])
+def send_manual_reminder(booking_id):
+    """Send manual reminder for a booking"""
+    try:
+        booking = Booking.query.get_or_404(booking_id)
+        
+        if booking.status != 'confirmed':
+            return jsonify({
+                'error': 'Can only send reminders for confirmed bookings',
+                'success': False
+            }), 400
+
+        # Prepare booking data
+        service_info = LASH_SERVICES.get(booking.service_type, {})
+        booking_data = {
+            'client_name': booking.client_name,
+            'client_phone': booking.client_phone,
+            'appointment_date': booking.appointment_date.strftime('%A, %B %d, %Y'),
+            'appointment_time': booking.appointment_time,
+            'service_name': service_info.get('name', booking.service_type),
+            'price': service_info.get('price', 0),
+            'duration': service_info.get('duration', 0)
+        }
+
+        # Send reminder
+        sms_result = sms_service.send_reminder_24h(booking_data)
+
+        return jsonify({
+            'message': 'Reminder sent successfully',
+            'sms_sent': sms_result['success'],
+            'success': True
+        })
+
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
+@app.route('/api/sms-status/<int:booking_id>', methods=['GET'])
+def get_sms_status(booking_id):
+    """Get SMS status for a booking"""
+    try:
+        booking = Booking.query.get_or_404(booking_id)
+        
+        return jsonify({
+            'booking_id': booking_id,
+            'confirmation_sent': booking.confirmation_sent,
+            'reminder_24h_sent': booking.reminder_24h_sent,
+            'reminder_2h_sent': booking.reminder_2h_sent,
+            'followup_sent': booking.followup_sent,
+            'success': True
+        })
+
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
+@app.route('/api/scheduled-jobs', methods=['GET'])
+def get_scheduled_jobs():
+    """Get list of scheduled reminder jobs"""
+    try:
+        reminder_scheduler = ReminderScheduler(db, Booking)
+        jobs = reminder_scheduler.get_scheduled_jobs()
+        
+        return jsonify({
+            'scheduled_jobs': [{'id': job[0], 'next_run': job[1].isoformat() if job[1] else None} for job in jobs],
             'success': True
         })
 

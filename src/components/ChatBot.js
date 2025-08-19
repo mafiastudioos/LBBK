@@ -142,7 +142,13 @@ const ChatBot = () => {
 - **Time:** ${bookingData.appointment_time}
 - **Booking ID:** ${response.data.booking_id}
 
-You'll receive a confirmation email shortly. I can't wait to see you for your lash appointment! ✨`,
+📱 **Text Notifications:**
+${response.data.sms_sent ? '✅ Confirmation text sent!' : '⚠️ Confirmation text pending'}
+- You'll receive a 24-hour reminder
+- You'll get a 2-hour reminder on appointment day
+- Follow-up care tips after your service
+
+I can't wait to see you for your lash appointment! ✨`,
           sender: 'bot',
           timestamp: new Date()
         };
