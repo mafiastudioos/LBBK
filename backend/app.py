@@ -8,6 +8,7 @@ import openai
 import json
 from sms_service import SMSService
 from scheduler import ReminderScheduler
+from verification_service import VerificationService
 
 load_dotenv()
 
@@ -22,8 +23,9 @@ db = SQLAlchemy(app)
 # Configure OpenAI
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
-# Initialize SMS service
+# Initialize services
 sms_service = SMSService()
+verification_service = VerificationService()
 
 # Database Models
 class Booking(db.Model):
@@ -433,6 +435,240 @@ def get_scheduled_jobs():
             'success': True
         })
 
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
+@app.route('/api/verify-client', methods=['POST'])
+def verify_client():
+    """Submit client verification for home service"""
+    try:
+        data = request.get_json()
+        
+        # Required verification fields
+        required_fields = [
+            'booking_id', 'government_id', 'emergency_contact', 
+            'emergency_phone', 'social_media_profile', 'deposit_amount'
+        ]
+        
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    'error': f'Missing required field: {field}',
+                    'success': False
+                }), 400
+        
+        # Get booking details
+        booking = Booking.query.get(data['booking_id'])
+        if not booking:
+            return jsonify({
+                'error': 'Booking not found',
+                'success': False
+            }), 404
+        
+        # Prepare booking data for verification
+        service_info = LASH_SERVICES.get(booking.service_type, {})
+        booking_data = {
+            'client_name': booking.client_name,
+            'client_phone': booking.client_phone,
+            'client_email': booking.client_email,
+            'service_name': service_info.get('name', booking.service_type),
+            'service_price': service_info.get('price', 0),
+            'service_duration': service_info.get('duration', 120),
+            'appointment_date': booking.appointment_date.strftime('%A, %B %d, %Y'),
+            'appointment_time': booking.appointment_time,
+            'deposit_amount': data['deposit_amount']
+        }
+        
+        # Prepare verification data
+        verification_data = {
+            'government_id': data['government_id'],
+            'emergency_contact': data['emergency_contact'],
+            'emergency_phone': data['emergency_phone'],
+            'social_media_profile': data['social_media_profile'],
+            'referral_source': data.get('referral_source', 'Unknown'),
+            'deposit_amount': data['deposit_amount']
+        }
+        
+        # Send verification request to admin
+        result = verification_service.send_verification_request_to_admin(
+            booking_data, verification_data
+        )
+        
+        if result['success']:
+            # Update booking status to pending verification
+            booking.status = 'pending_verification'
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Verification request submitted successfully',
+                'admin_notified': result['admin_sms_sent'],
+                'client_notified': result['client_sms_sent'],
+                'success': True
+            })
+        else:
+            return jsonify({
+                'error': 'Failed to submit verification request',
+                'success': False
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
+@app.route('/api/admin/approve-client', methods=['POST'])
+def admin_approve_client():
+    """Admin endpoint to approve client and send address"""
+    try:
+        data = request.get_json()
+        booking_id = data.get('booking_id')
+        
+        if not booking_id:
+            return jsonify({
+                'error': 'Missing booking_id',
+                'success': False
+            }), 400
+        
+        booking = Booking.query.get(booking_id)
+        if not booking:
+            return jsonify({
+                'error': 'Booking not found',
+                'success': False
+            }), 404
+        
+        # Prepare booking data
+        service_info = LASH_SERVICES.get(booking.service_type, {})
+        booking_data = {
+            'client_name': booking.client_name,
+            'client_phone': booking.client_phone,
+            'service_name': service_info.get('name', booking.service_type),
+            'service_duration': service_info.get('duration', 120),
+            'appointment_date': booking.appointment_date.strftime('%A, %B %d, %Y'),
+            'appointment_time': booking.appointment_time,
+            'deposit_amount': 25  # Default deposit amount
+        }
+        
+        # Send approval with address
+        result = verification_service.send_approval_with_address(booking_data)
+        
+        if result['success']:
+            # Update booking status
+            booking.status = 'verified_approved'
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Client approved and address sent',
+                'client_notified': result['client_notified'],
+                'success': True
+            })
+        else:
+            return jsonify({
+                'error': 'Failed to send approval',
+                'success': False
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
+@app.route('/api/admin/reject-client', methods=['POST'])
+def admin_reject_client():
+    """Admin endpoint to reject client"""
+    try:
+        data = request.get_json()
+        booking_id = data.get('booking_id')
+        reason = data.get('reason', 'safety verification requirements')
+        
+        if not booking_id:
+            return jsonify({
+                'error': 'Missing booking_id',
+                'success': False
+            }), 400
+        
+        booking = Booking.query.get(booking_id)
+        if not booking:
+            return jsonify({
+                'error': 'Booking not found',
+                'success': False
+            }), 404
+        
+        # Prepare booking data
+        booking_data = {
+            'client_name': booking.client_name,
+            'client_phone': booking.client_phone,
+            'deposit_amount': 25  # Default deposit amount
+        }
+        
+        # Send rejection notification
+        result = verification_service.send_rejection_notification(booking_data, reason)
+        
+        if result['success']:
+            # Update booking status
+            booking.status = 'verification_rejected'
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Client rejection sent',
+                'client_notified': result['client_notified'],
+                'refund_required': True,
+                'success': True
+            })
+        else:
+            return jsonify({
+                'error': 'Failed to send rejection',
+                'success': False
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'success': False
+        }), 500
+
+@app.route('/api/test-verification', methods=['POST'])
+def test_verification():
+    """Test endpoint to demonstrate the verification system"""
+    try:
+        # Sample test data
+        booking_data = {
+            'client_name': 'Sarah Johnson',
+            'client_phone': '+1234567890',  # Replace with your test number
+            'client_email': 'sarah@example.com',
+            'service_name': 'Volume Lashes',
+            'service_price': 120,
+            'service_duration': 150,
+            'appointment_date': 'Friday, August 25, 2024',
+            'appointment_time': '2:00 PM',
+            'deposit_amount': 25
+        }
+        
+        verification_data = {
+            'government_id': 'DL123456789 (CA)',
+            'emergency_contact': 'Mike Johnson',
+            'emergency_phone': '+1987654321',
+            'social_media_profile': 'https://instagram.com/sarah_j',
+            'referral_source': 'Instagram',
+            'deposit_amount': 25
+        }
+        
+        # Send test verification request
+        result = verification_service.send_verification_request_to_admin(
+            booking_data, verification_data
+        )
+        
+        return jsonify({
+            'message': 'Test verification sent',
+            'result': result,
+            'note': 'Check your phone for the admin notification SMS',
+            'success': True
+        })
+        
     except Exception as e:
         return jsonify({
             'error': str(e),
