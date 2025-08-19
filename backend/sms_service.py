@@ -123,7 +123,7 @@ Rate your experience: [link]
 Book your next appointment: [link]
 
 Questions? Text us anytime!
-LashLuxe Team 💫"""
+Lash Beauty Bot & LashLuxe Team 💫"""
 
         return self.send_sms(booking_data['client_phone'], message)
 

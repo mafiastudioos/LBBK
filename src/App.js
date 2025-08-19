@@ -37,7 +37,7 @@ function App() {
               Book Your Perfect Lash Experience
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Chat with Luna, our AI assistant, to find the perfect lash service and book your appointment instantly. 
+              Chat with Lash Beauty Bot, our AI assistant, to find the perfect lash service and book your appointment instantly. 
               Get personalized recommendations and answers to all your lash questions!
             </p>
           </div>

@@ -94,7 +94,7 @@ def get_ai_response(user_message, conversation_history):
     try:
         # Create system prompt for lash booking assistant
         system_prompt = f"""
-        You are Luna, a friendly and professional AI assistant for a luxury lash extension salon. Your role is to help clients book appointments and answer questions about lash services.
+        You are Lash Beauty Bot, a friendly and professional AI assistant for a luxury lash extension salon. Your role is to help clients book appointments and answer questions about lash services.
 
         Available Services:
         {json.dumps(LASH_SERVICES, indent=2)}

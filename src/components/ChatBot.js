@@ -6,7 +6,7 @@ const ChatBot = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hi! I'm Luna, your personal lash assistant! 💫 I'm here to help you find the perfect lash service and book your appointment. What can I help you with today?",
+      text: "Hi! I'm Lash Beauty Bot, your personal lash assistant! 💫 I'm here to help you find the perfect lash service and book your appointment. What can I help you with today?",
       sender: 'bot',
       timestamp: new Date()
     }
@@ -220,7 +220,7 @@ I can't wait to see you for your lash appointment! ✨`,
                   <Sparkles size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Luna</h3>
+                  <h3 className="font-semibold">Lash Beauty Bot</h3>
                   <p className="text-xs opacity-90">Your Lash Assistant</p>
                 </div>
               </div>

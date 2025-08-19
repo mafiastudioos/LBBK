@@ -5,7 +5,7 @@ A sophisticated AI-powered chatbot for booking lash extension appointments with 
 ## Features
 
 ### 🤖 AI Chatbot
-- **Luna**: Intelligent AI assistant powered by OpenAI GPT
+- **Lash Beauty Bot**: Intelligent AI assistant powered by OpenAI GPT
 - Natural conversation flow for booking appointments
 - Service recommendations based on client needs
 - Real-time availability checking
@@ -137,9 +137,9 @@ The application will be available at:
 
 ### For Clients
 1. Visit the website
-2. Click the chat bubble to start conversation with Luna
+2. Click the chat bubble to start conversation with Lash Beauty Bot
 3. Ask questions about services or request to book an appointment
-4. Follow Luna's guidance to complete booking
+4. Follow Lash Beauty Bot's guidance to complete booking
 5. Receive immediate SMS confirmation
 6. Get automated reminders before your appointment
 
@@ -266,7 +266,7 @@ LASH_SERVICES = {
 Edit the message templates in `backend/sms_service.py` to match your business branding and requirements.
 
 ### Customizing AI Responses
-Update the system prompt in the `get_ai_response` function in `backend/app.py` to adjust Luna's personality and knowledge base.
+Update the system prompt in the `get_ai_response` function in `backend/app.py` to adjust Lash Beauty Bot's personality and knowledge base.
 
 ## Troubleshooting
 
