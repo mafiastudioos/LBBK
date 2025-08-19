@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { Send, MessageCircle, X, Calendar, Clock, User, Phone, Mail, Sparkles } from 'lucide-react';
+import InteractiveBooking from './InteractiveBooking';
 
 const FreeChatBot = () => {
   const [messages, setMessages] = useState([
@@ -15,6 +16,7 @@ const FreeChatBot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState('main');
+  const [showInteractiveBooking, setShowInteractiveBooking] = useState(false);
   const [bookingData, setBookingData] = useState({
     client_name: '',
     client_email: '',
