@@ -80,13 +80,61 @@ const FreeChatBot = () => {
   const handleRuleBasedResponse = (userInput) => {
     const input = userInput.toLowerCase();
     
+    // Enhanced service shortcuts
+    const serviceShortcuts = {
+      // Classic lashes shortcuts
+      'classic': 'classic_lashes',
+      'natural': 'classic_lashes',
+      'basic': 'classic_lashes',
+      'simple': 'classic_lashes',
+      'individual': 'classic_lashes',
+      
+      // Volume lashes shortcuts
+      'volume': 'volume_lashes',
+      'full': 'volume_lashes',
+      'fluffy': 'volume_lashes',
+      'dramatic': 'volume_lashes',
+      
+      // Mega volume shortcuts
+      'mega': 'mega_volume',
+      'mega volume': 'mega_volume',
+      'russian': 'mega_volume',
+      'thick': 'mega_volume',
+      'fullest': 'mega_volume',
+      'maximum': 'mega_volume',
+      
+      // Lash lift shortcuts
+      'lift': 'lash_lift',
+      'lash lift': 'lash_lift',
+      'tint': 'lash_lift',
+      'curl': 'lash_lift',
+      'natural enhancement': 'lash_lift',
+      'perm': 'lash_lift',
+      
+      // Refill shortcuts
+      'refill': 'refill',
+      'fill': 'refill',
+      'touch up': 'refill',
+      'maintenance': 'refill',
+      'touch-up': 'refill'
+    };
+
+    // Check for service shortcuts first
+    for (const [shortcut, serviceKey] of Object.entries(serviceShortcuts)) {
+      if (input.includes(shortcut)) {
+        const service = services[serviceKey];
+        addMessage(`Great choice! ${service.name} is perfect for you! ✨\n\n💫 ${service.name} - $${service.price}\n⏱️ Duration: ${service.duration} minutes\n📝 ${service.description}\n\nWould you like to book this service? Just say "book ${service.name.toLowerCase()}" or "book appointment"!`);
+        return;
+      }
+    }
+    
     // Service information responses
     if (input.includes('service') || input.includes('what do you offer') || input.includes('price') || input.includes('cost')) {
       const serviceList = Object.entries(services).map(([key, service]) => 
-        `💫 ${service.name} - $${service.price} (${service.duration} min)\n   ${service.description}`
+        `💫 ${service.name} - $${service.price} (${service.duration} min)\n   ${service.description}\n   📝 Say: "${service.name.toLowerCase()}" to learn more`
       ).join('\n\n');
       
-      addMessage(`Here are our lash services:\n\n${serviceList}\n\nWould you like to book one of these services? Just say "book appointment" or click the quick response below!`);
+      addMessage(`Here are our lash services:\n\n${serviceList}\n\n💡 Quick shortcuts:\n• "classic" for natural look\n• "volume" for fuller lashes\n• "mega" for maximum drama\n• "lift" for natural enhancement\n• "refill" for touch-ups\n\nWould you like to book one of these services?`);
       return;
     }
 
