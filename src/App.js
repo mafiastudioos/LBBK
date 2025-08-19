@@ -1,5 +1,5 @@
 import React from 'react';
-import ChatBot from './components/ChatBot';
+import FreeChatBot from './components/FreeChatBot';
 import './App.css';
 
 function App() {
@@ -12,8 +12,8 @@ function App() {
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <h1 className="text-3xl font-bold text-gray-900">
-                    <span className="text-pink-600">Lash</span>
-                    <span className="text-purple-600">Luxe</span>
+                    <span className="text-pink-600">LashBeauty</span>
+                    <span className="text-purple-600">ByKim</span>
                   </h1>
                 </div>
                 <div className="ml-4">
@@ -37,7 +37,7 @@ function App() {
               Book Your Perfect Lash Experience
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Chat with Lash Beauty Bot, our AI assistant, to find the perfect lash service and book your appointment instantly. 
+Chat with Lash Beauty Bot, our AI assistant, to find the perfect lash service and book your appointment instantly. 
               Get personalized recommendations and answers to all your lash questions!
             </p>
           </div>
@@ -74,7 +74,7 @@ function App() {
             </div>
           </div>
 
-          <ChatBot />
+          <FreeChatBot />
         </main>
 
         <footer className="bg-gray-900 text-white mt-20">
@@ -82,11 +82,11 @@ function App() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div className="col-span-1 md:col-span-2">
                 <h3 className="text-2xl font-bold mb-4">
-                  <span className="text-pink-400">Lash</span>
-                  <span className="text-purple-400">Luxe</span>
+                  <span className="text-pink-400">LashBeauty</span>
+                  <span className="text-purple-400">ByKim</span>
                 </h3>
                 <p className="text-gray-300 mb-4">
-                  Premium lash extension services with personalized AI-powered booking assistance.
+                  Premium lash extension services by Kim with personalized booking assistance.
                 </p>
                 <div className="flex space-x-4">
                   <a href="#" className="text-gray-300 hover:text-pink-400 transition-colors">
@@ -120,13 +120,13 @@ function App() {
                 <div className="space-y-2 text-gray-300">
                   <p>📍 123 Beauty Lane, City</p>
                   <p>📞 (555) 123-4567</p>
-                  <p>✉️ hello@lashluxe.com</p>
+                  <p>✉️ hello@lashbeautybykim.com</p>
                   <p>🕒 Mon-Sat: 9AM-7PM</p>
                 </div>
               </div>
             </div>
             <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-              <p>&copy; 2024 LashLuxe. All rights reserved. Powered by AI.</p>
+              <p>&copy; 2024 LashBeautyByKim. All rights reserved.</p>
             </div>
           </div>
         </footer>
